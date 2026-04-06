@@ -1,4 +1,3 @@
-import fetch from 'node-fetch'
 //follow ig @elyas_tzy ya sayangkuhhh
 //f0llow ig @elyas_tzy ya sayangkuhhh
 const couriers = [
