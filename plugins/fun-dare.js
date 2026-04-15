@@ -1,8 +1,8 @@
-import axios from 'axios';
-
 let handler = async (m) => {
-	let result = await axios.get('https://raw.githubusercontent.com/BochilTeam/database/master/kata-kata/dare.json');
-	let dare = result.data.getRandom();
+	const res = await fetch('https://raw.githubusercontent.com/BochilTeam/database/master/kata-kata/dare.json');
+	const result = await res.json();
+
+	let dare = result.getRandom();
 	m.reply(dare);
 };
 handler.help = ['dare'];
