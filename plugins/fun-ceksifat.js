@@ -1,5 +1,5 @@
 let handler = async (m, { text }) => {
-	if (!text) throw 'Masukkan namamu!';
+	if (!text) return m.reply('Masukkan namamu!');
 
 	m.reply(
 		`

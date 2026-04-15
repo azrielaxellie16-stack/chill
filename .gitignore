@@ -4,3 +4,4 @@ sessions
 *.zip
 database.json
 push.sh
+data

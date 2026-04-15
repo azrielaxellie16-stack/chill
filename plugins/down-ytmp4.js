@@ -2,7 +2,6 @@ import { ytdown } from './down-ytmp3.js';
 
 let handler = async (m, { usedPrefix, command, text }) => {
 	if (!text) throw `Usage: ${usedPrefix + command} <YouTube Video URL>`;
-	m.react('🔁');
 	try {
 		const dl = await ytdown(text, 'video');
 		const info = dl.info;

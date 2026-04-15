@@ -6,8 +6,8 @@ import * as cheerio from 'cheerio';
 let handler = async (m, { conn, args }) => {
 	let cmd = args[0]?.toLowerCase();
 
-	if (!cmd)
-		throw `*Gunakan Salah Satu Command Ini*
+	if (!cmd) {
+		return m.reply(`*Gunakan Salah Satu Command Ini*
 
 1 *.dafont search [nama_font]*
    Untuk mencari font berdasarkan nama.
@@ -17,65 +17,18 @@ let handler = async (m, { conn, args }) => {
 
 *Example :*
 .dafont search fancy
-.dafont dl https://dl.dafont.com/dl/?f=fancy_nancy_2`;
+.dafont dl https://dl.dafont.com/dl/?f=fancy_nancy_2`);
+	}
 
 	switch (cmd) {
 		case 'search':
-			if (!args[1]) throw 'Mau Cari Apa Di Dafont?';
-			const query = args[1];
-			try {
-				m.reply('🔍 Searching fonts...');
-
-				let result = await dafont(query);
-				if (!result.length) throw `Font "${query}" tidak ditemukan`;
-
-				let teks = `*『 DAFONT SEARCH 』*`;
-
-				result.slice(0, 10).forEach((font, i) => {
-					teks += `
-
-*${i + 1}. ${font.name}*
-✍️ Creator : ${font.creator}
-⬇️ Download : ${font.total_down}
-🔗 ${font.link}`;
-				});
-
-				teks += `\n\nGunakan:\n*.dafont dl [link_download]*`;
-				m.reply(teks);
-			} catch (e) {
-				console.error(e);
-				m.reply('❌ Error saat mencari font');
-			}
+			if (!args[1]) return m.reply('Mau Cari Apa Di Dafont?');
+			await handleSearch(m, args.slice(1).join(' '));
 			break;
 
 		case 'dl':
-			if (!args[1]) throw 'Mana Link Nya?';
-			const url = args[1];
-			if (!url.startsWith('https://dl.dafont.com/')) throw '❌ Link tidak valid';
-
-			try {
-				m.reply('⬇️ Downloading font...');
-
-				const res = await fetch(url);
-
-				if (!res.ok) throw `Terjadi kesalahan ${res.statusText}`;
-
-				const buffer = Buffer.from(await res.arrayBuffer());
-
-				const name = url.split('=').pop();
-				await conn.sendMessage(
-					m.chat,
-					{
-						document: buffer,
-						mimetype: 'application/zip',
-						fileName: `${name}.zip`,
-					},
-					{ quoted: m }
-				);
-			} catch (e) {
-				console.error(e);
-				m.reply('❌ Gagal download font');
-			}
+			if (!args[1]) return m.reply('Mana Link Nya?');
+			await handleDownload(conn, m, args[1]);
 			break;
 
 		default:
@@ -83,12 +36,65 @@ let handler = async (m, { conn, args }) => {
 	}
 };
 
+async function handleSearch(m, query) {
+	try {
+		m.reply('🔍 Searching fonts...');
+
+		let result = await dafont(query);
+		if (!result.length) {
+			return m.reply(`Font "${query}" tidak ditemukan`);
+		}
+
+		let teks = `*『 DAFONT SEARCH 』*`;
+
+		result.slice(0, 10).forEach((font, i) => {
+			teks += `
+
+*${i + 1}. ${font.name}*
+✍️ Creator : ${font.creator}
+⬇️ Download : ${font.total_down}
+🔗 ${font.link}`;
+		});
+
+		teks += `\n\nGunakan:\n*.dafont dl [link_download]*`;
+		m.reply(teks);
+	} catch (e) {
+		console.error(e);
+		m.reply('❌ Error saat mencari font');
+	}
+}
+
+async function handleDownload(conn, m, url) {
+	if (!url.startsWith('https://dl.dafont.com/')) {
+		return m.reply('❌ Link tidak valid');
+	}
+
+	try {
+		m.reply('⬇️ Downloading font...');
+
+		const res = await axios.get(url, {
+			responseType: 'arraybuffer',
+		});
+
+		const name = url.split('=').pop();
+		await conn.sendMessage(
+			m.chat,
+			{
+				document: res.data,
+				mimetype: 'application/zip',
+				fileName: `${name}.zip`,
+			},
+			{ quoted: m }
+		);
+	} catch (e) {
+		console.error(e);
+		m.reply('❌ Gagal download font');
+	}
+}
+
 async function dafont(query) {
-	const res = await fetch('https://www.dafont.com/search.php?q=' + encodeURIComponent(query));
+	const { data } = await axios.get('https://www.dafont.com/search.php?q=' + encodeURIComponent(query));
 
-	if (!res.ok) throw new Error(`Status ${res.status}`);
-
-	const data = await res.text();
 	const $ = cheerio.load(data);
 	const result = [];
 

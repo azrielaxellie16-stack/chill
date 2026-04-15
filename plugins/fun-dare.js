@@ -1,7 +1,7 @@
-let handler = async (m) => {
-	const res = await fetch('https://raw.githubusercontent.com/BochilTeam/database/master/kata-kata/dare.json');
-	const result = await res.json();
+import axios from 'axios';
 
+let handler = async (m) => {
+	let result = await axios.get('https://raw.githubusercontent.com/BochilTeam/database/master/kata-kata/dare.json');
 	let dare = result.data.getRandom();
 	m.reply(dare);
 };
