@@ -5,6 +5,17 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { watchFile, unwatchFile } from 'fs';
 import readline from 'readline';
+import ffmpeg from 'fluent-ffmpeg'
+import ffmpegInstaller from '@ffmpeg-installer/ffmpeg'
+
+ffmpeg.setFfmpegPath(
+  ffmpegInstaller.path
+)
+
+console.log(
+  '✅ FFmpeg:',
+  ffmpegInstaller.path
+)
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rl = readline.createInterface(process.stdin, process.stdout);
