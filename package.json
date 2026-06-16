@@ -11,6 +11,9 @@
     "lib": "lib",
     "plugins": "plugins"
   },
+  "engines": {
+  "node": "24.x"
+},
   "scripts": {
     "start": "node index.js",
     "format": "prettier --write .",
