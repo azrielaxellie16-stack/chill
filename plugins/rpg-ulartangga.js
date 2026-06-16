@@ -1,7 +1,5 @@
-
-
-import Jimp from 'jimp';
-import axios from 'axios';
+import { Jimp } from 'jimp'
+import axios from 'axios'
 
 class GameSession {
 	constructor(id, sMsg) {
@@ -76,7 +74,7 @@ class SnakeAndLadderGame {
 		return Math.floor(Math.random() * 6) + 1;
 	}
 
-	async movePlayer(player, steps) {
+	async movePlayer(m, player, steps) {
 		if (this.players.length === 0) return;
 		const currentPosition = this.currentPositions[player];
 		let newPosition = currentPosition + steps;
@@ -100,7 +98,7 @@ class SnakeAndLadderGame {
 			const response = await axios.get(url, {
 				responseType: 'arraybuffer'
 			});
-			return await Jimp.read(Buffer.from(response.data, 'binary'));
+			return await Jimp.read(Buffer.from(response.data));
 		} catch (error) {
 			console.error(`Error fetching image from ${url}:`, error);
 			throw error;
@@ -108,18 +106,53 @@ class SnakeAndLadderGame {
 	}
 
 	async getBoardBuffer() {
-		const board = new Jimp(420, 420);
-		this.bgImage.resize(420, 420);
-		board.composite(this.bgImage, 0, 0);
-		for (const player of this.players) {
-			const playerPosition = this.currentPositions[player];
-			const playerImage = player === this.players[0] ? this.player1Image : this.player2Image;
-			const playerX = ((playerPosition - 1) % 10) * this.cellWidth + 10;
-			const playerY = (9 - Math.floor((playerPosition - 1) / 10)) * this.cellHeight + 10;
-			board.composite(playerImage.clone().resize(this.cellWidth, this.cellHeight), playerX, playerY);
-		}
-		return board.getBufferAsync(Jimp.MIME_PNG);
-	}
+  const board = new Jimp({
+    width: 420,
+    height: 420
+  });
+
+  this.bgImage.resize({
+    width: 420,
+    height: 420
+  });
+
+  board.composite(this.bgImage, 0, 0);
+
+  for (const player of this.players) {
+    const playerPosition = this.currentPositions[player];
+
+    const playerImage =
+      player === this.players[0]
+        ? this.player1Image
+        : this.player2Image;
+
+    const playerX =
+      ((playerPosition - 1) % 10) *
+        this.cellWidth +
+      10;
+
+    const playerY =
+      (9 -
+        Math.floor(
+          (playerPosition - 1) / 10
+        )) *
+        this.cellHeight +
+      10;
+
+    board.composite(
+      playerImage
+        .clone()
+        .resize({
+          width: this.cellWidth,
+          height: this.cellHeight
+        }),
+      playerX,
+      playerY
+    );
+  }
+
+  return await board.getBuffer('image/png');
+}
 
 	async startGame(m, player1Name, player2Name) {
 		await m.reply(`🐍🎲 *Selamat datang di Permainan Ular Tangga!* 🎲🐍 \n\n@${player1Name.split('@')[0]} vs @${player2Name.split('@')[0]}`, null, {
@@ -153,7 +186,7 @@ class SnakeAndLadderGame {
 			mentions: [player]
 		});
 		if (diceRoll !== 6) {
-			this.movePlayer(player, diceRoll);
+			await this.movePlayer(m, player, diceRoll);
 			const snakeOrLadder = this.snakesAndLadders.find(s => s.start === this.currentPositions[player]);
 
 			if (snakeOrLadder) {
@@ -170,7 +203,7 @@ class SnakeAndLadderGame {
 			this.switchPlayer();
 		} else {
 			await m.reply('🎲 Anda mendapat 6, jadi giliran Anda masih berlanjut.');
-			this.movePlayer(player, diceRoll);
+			await this.movePlayer(m, player, diceRoll);
 		}
 		if (this.currentPositions[player] === this.boardSize) {
 			await m.reply(`🎉 @${player.split('@')[0]} menang! Selamat!`, null, {
@@ -291,7 +324,7 @@ const handler = async (m, {
 };
 
 handler.help = ['ulartangga'];
-handler.tags = ['rpg'];
+handler.tags = ['game'];
 handler.command = /^(ular(tangga)?|ladders|snak(e)?)$/i;
 
 export default handler;
