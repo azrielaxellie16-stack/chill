@@ -7,22 +7,23 @@ import fs from 'fs'
 
 ffmpeg.setFfmpegPath(ffmpegPath)
 
-// 🔥 fungsi auto compress video
+// 🔥 AUTO COMPRESS VIDEO (FIXED)
 const compressVideo = (inputBuffer) => {
   return new Promise((resolve, reject) => {
-    const inputPath = join(tmpdir(), `input_${Date.now()}.mp4`)
-    const outputPath = join(tmpdir(), `output_${Date.now()}.mp4`)
+    const inputPath = join(tmpdir(), `in_${Date.now()}.mp4`)
+    const outputPath = join(tmpdir(), `out_${Date.now()}.mp4`)
 
     fs.writeFileSync(inputPath, inputBuffer)
 
     ffmpeg(inputPath)
       .outputOptions([
-        '-vf scale=512:512:force_original_aspect_ratio=decrease',
-        '-vf pad=512:512:(ow-iw)/2:(oh-ih)/2',
-        '-r 15',          // fps biar ringan & support WA
-        '-t 6',           // max 6 detik
+        // ✅ FIX: gabung scale + pad
+        '-vf scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2',
+        '-r 15',
+        '-t 6',
         '-preset ultrafast',
-        '-crf 32'         // compress kuat
+        '-crf 32',
+        '-pix_fmt yuv420p'
       ])
       .save(outputPath)
       .on('end', () => {
@@ -32,7 +33,8 @@ const compressVideo = (inputBuffer) => {
         resolve(buffer)
       })
       .on('error', (err) => {
-        fs.unlinkSync(inputPath)
+        try { fs.unlinkSync(inputPath) } catch {}
+        try { fs.unlinkSync(outputPath) } catch {}
         reject(err)
       })
   })
@@ -62,7 +64,7 @@ let handler = async (m, { conn }) => {
       type: 'full',
       quality: 100,
 
-      // 🔥 biar selalu gerak
+      // 🔥 BIAR SELALU GERAK
       animated: isAnimated,
       fps: 15,
       loop: 0
@@ -85,5 +87,6 @@ let handler = async (m, { conn }) => {
 handler.help = ['sticker', 's']
 handler.tags = ['tools']
 handler.command = /^(sticker|s|stiker)$/i
+//ndler.limit = true
 
 export default handler
