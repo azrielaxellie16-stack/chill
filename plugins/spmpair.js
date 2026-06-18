@@ -54,7 +54,5 @@ let handler = async (m, { conn, text, reaction, Access, kntol }) => {
 handler.help = ["pair"];
 handler.tags = ["owner"];
 handler.command = /^pair$/i;
-handler.prem = true;
-handler.limit = false;
 
 export default handler;
