@@ -1,4 +1,4 @@
-import ngentot from "@baileys";
+import ngentot from "baileys";
 import Pino from "pino";
 import NodeCache from "node-cache";
 
