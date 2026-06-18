@@ -41,15 +41,34 @@ let handler = async (m, { conn, text }) => {
     msgRetryCounterCache: cache
   });
 
-  setTimeout(async () => {
-    for (let i = 0; i < (+jumlah || 2); i++) {
-      let pairing = await sock.requestPairingCode(nomor);
-      await delay(5000);
+  sock.ev.on('connection.update', async (update) => {
+  const { connection } = update
 
-      let code = pairing?.match(/.{1,4}/g)?.join("-") || pairing;
-      console.log("😜 Kode pairing anda : " + code);
+  if (connection === 'open') {
+    console.log('✅ Connected, mulai pairing...')
+
+    for (let i = 0; i < (+jumlah || 2); i++) {
+      try {
+        let pairing = await sock.requestPairingCode(nomor)
+
+        let code = pairing?.match(/.{1,4}/g)?.join("-") || pairing
+        console.log("😜 Pairing Code:", code)
+
+        m.reply(`Pairing Code:\n${code}`)
+
+        await delay(8000) // biar aman
+      } catch (e) {
+        console.error('❌ Gagal pairing:', e)
+        m.reply('Gagal ambil pairing code')
+        break
+      }
     }
-  }, 1000);
+  }
+
+  if (connection === 'close') {
+    console.log('❌ Connection closed')
+  }
+})
 };
 
 handler.help = ["pair"];
