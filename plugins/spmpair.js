@@ -12,7 +12,7 @@ const {
 } = ngentot;
 
 let handler = async (m, { conn, text }) => {
-  if (!text) return kntol("where jid? Ex 628");
+  if (!text) throw 'Masukkan nomornya'
 
   await m.react('✨')
 
