@@ -62,6 +62,7 @@
     "node-fetch": "*",
     "node-cache": "*",
     "pdfkit": "^0.17.2",
+    "pino": "^9.0.0",
     "ruhend-scraper": "^7.0.4",
     "syntax-error": "^1.4.0",
     "similarity": "^1.2.1",
