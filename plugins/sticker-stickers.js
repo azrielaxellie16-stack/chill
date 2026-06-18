@@ -1,4 +1,3 @@
-import { Sticker } from 'wa-sticker-formatter'
 import ffmpeg from 'fluent-ffmpeg'
 import ffmpegPath from 'ffmpeg-static'
 import { tmpdir } from 'os'
@@ -7,34 +6,49 @@ import fs from 'fs'
 
 ffmpeg.setFfmpegPath(ffmpegPath)
 
-// 🔥 AUTO COMPRESS VIDEO (FIXED)
-const compressVideo = (inputBuffer) => {
+// 🔥 CONVERT LANGSUNG KE WEBP (LEBIH STABIL)
+const toWebp = (buffer, isAnimated) => {
   return new Promise((resolve, reject) => {
-    const inputPath = join(tmpdir(), `in_${Date.now()}.mp4`)
-    const outputPath = join(tmpdir(), `out_${Date.now()}.mp4`)
+    const input = join(tmpdir(), `in_${Date.now()}.mp4`)
+    const output = join(tmpdir(), `out_${Date.now()}.webp`)
 
-    fs.writeFileSync(inputPath, inputBuffer)
+    fs.writeFileSync(input, buffer)
 
-    ffmpeg(inputPath)
-      .outputOptions([
-        // ✅ FIX: gabung scale + pad
-        '-vf scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2',
-        '-r 15',
-        '-t 6',
-        '-preset ultrafast',
-        '-crf 32',
-        '-pix_fmt yuv420p'
+    let command = ffmpeg(input)
+
+    if (isAnimated) {
+      command.outputOptions([
+        // 🔥 FULL OPTIMIZE
+        '-vcodec libwebp',
+        '-vf scale=512:512:force_original_aspect_ratio=decrease,fps=12,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=white@0.0',
+        '-loop 0',
+        '-ss 0',
+        '-t 5',
+        '-preset default',
+        '-an',
+        '-vsync 0'
       ])
-      .save(outputPath)
+    } else {
+      command.outputOptions([
+        '-vcodec libwebp',
+        '-vf scale=512:512:force_original_aspect_ratio=decrease',
+        '-lossless 0',
+        '-qscale 75'
+      ])
+    }
+
+    command
+      .save(output)
       .on('end', () => {
-        const buffer = fs.readFileSync(outputPath)
-        fs.unlinkSync(inputPath)
-        fs.unlinkSync(outputPath)
-        resolve(buffer)
+        let result = fs.readFileSync(output)
+
+        fs.unlinkSync(input)
+        fs.unlinkSync(output)
+
+        resolve(result)
       })
       .on('error', (err) => {
-        try { fs.unlinkSync(inputPath) } catch {}
-        try { fs.unlinkSync(outputPath) } catch {}
+        try { fs.unlinkSync(input) } catch {}
         reject(err)
       })
   })
@@ -45,7 +59,7 @@ let handler = async (m, { conn }) => {
   let mime = (quoted.msg || quoted).mimetype || ''
 
   if (!/image|video|gif/.test(mime)) {
-    return m.reply('Reply/kirim gambar, video, atau gif!')
+    return m.reply('Reply gambar/video/gif!')
   }
 
   let isAnimated = /video|gif/.test(mime)
@@ -53,40 +67,24 @@ let handler = async (m, { conn }) => {
   try {
     let media = await quoted.download()
 
-    // 🔥 AUTO COMPRESS kalau video/gif
-    if (isAnimated) {
-      media = await compressVideo(media)
-    }
-
-    let sticker = new Sticker(media, {
-      pack: 'MyBot',
-      author: 'Agyss',
-      type: 'full',
-      quality: 100,
-
-      // 🔥 BIAR SELALU GERAK
-      animated: isAnimated,
-      fps: 15,
-      loop: 0
-    })
-
-    let buffer = await sticker.toBuffer()
+    // 🔥 LANGSUNG CONVERT KE WEBP (BYPASS FORMATTER)
+    let webp = await toWebp(media, isAnimated)
 
     await conn.sendMessage(
       m.chat,
-      { sticker: buffer },
+      { sticker: webp },
       { quoted: m }
     )
 
-  } catch (err) {
-    console.error(err)
-    m.reply('Gagal buat sticker!')
+  } catch (e) {
+    console.error(e)
+    m.reply('Gagal convert sticker!')
   }
 }
 
 handler.help = ['sticker', 's']
 handler.tags = ['tools']
-handler.command = /^(sticker|s|stiker)$/i
-//ndler.limit = true
+handler.command = /^(s|sticker)$/i
+handler.limit = false
 
 export default handler
