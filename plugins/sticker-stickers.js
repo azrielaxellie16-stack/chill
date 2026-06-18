@@ -6,6 +6,7 @@ import fs from 'fs'
 
 ffmpeg.setFfmpegPath(ffmpegPath)
 
+// 🔥 CONVERT KE WEBP (OPTIMAL + TRANSPARAN)
 const toWebp = (buffer, isAnimated) => {
   return new Promise((resolve, reject) => {
     const input = join(tmpdir(), `in_${Date.now()}.mp4`)
@@ -19,11 +20,11 @@ const toWebp = (buffer, isAnimated) => {
       cmd.outputOptions([
         '-vcodec libwebp',
 
-        // 🔥 NO GEPENG + AUTO FIT + TRANSPARENT
-        '-vf scale=512:512:force_original_aspect_ratio=decrease,fps=12,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=white@0.0',
+        // 🔥 NO GEPENG + TRANSPARAN REAL
+        '-vf scale=512:512:force_original_aspect_ratio=decrease,fps=12,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000',
 
         '-loop 0',
-        '-t 5',
+        '-t 5',            // max 5 detik biar ringan
         '-preset default',
         '-an',
         '-vsync 0'
@@ -32,10 +33,10 @@ const toWebp = (buffer, isAnimated) => {
       cmd.outputOptions([
         '-vcodec libwebp',
 
-        // 🔥 IMAGE JUGA NO GEPENG
-        '-vf scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2',
+        // 🔥 IMAGE FIX
+        '-vf scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000',
 
-        '-qscale 70'
+        '-qscale 60' // 🔥 kecilin size
       ])
     }
 
@@ -48,6 +49,7 @@ const toWebp = (buffer, isAnimated) => {
       })
       .on('error', (err) => {
         try { fs.unlinkSync(input) } catch {}
+        try { fs.unlinkSync(output) } catch {}
         reject(err)
       })
   })
@@ -58,16 +60,21 @@ let handler = async (m, { conn }) => {
   let mime = (quoted.msg || quoted).mimetype || ''
 
   if (!/image|video|gif/.test(mime)) {
-    return m.reply('Reply gambar/video/gif!')
+    return m.reply('Reply gambar / video / gif!')
   }
 
   let isAnimated = /video|gif/.test(mime)
 
   try {
     let media = await quoted.download()
+
     let webp = await toWebp(media, isAnimated)
 
-    await conn.sendMessage(m.chat, { sticker: webp }, { quoted: m })
+    await conn.sendMessage(
+      m.chat,
+      { sticker: webp },
+      { quoted: m }
+    )
 
   } catch (e) {
     console.error(e)
@@ -78,6 +85,5 @@ let handler = async (m, { conn }) => {
 handler.help = ['sticker', 's']
 handler.tags = ['tools']
 handler.command = /^(s|sticker)$/i
-handler.limit = false
 
 export default handler
