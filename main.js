@@ -19,8 +19,6 @@ global.__dirname = function dirname(_0x7065ad) {
 global.__require = function require(_0x4b40c4 = import.meta.url) {
   return createRequire(_0x4b40c4);
 };
-import ffmpeg from "fluent-ffmpeg";
-import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
 import _0x286f44 from "fs";
 import { spawn } from "child_process";
 import { tmpdir } from "os";
@@ -41,7 +39,6 @@ global.db = {
   sqlite: null,
   data: null
 };
-ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 global.loadDatabase = function () {
   if (!global.db.sqlite) {
     const _0x14be4d = _0x447d04.resolve("./data/database.db");

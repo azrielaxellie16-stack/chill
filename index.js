@@ -5,100 +5,82 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { watchFile, unwatchFile } from 'fs';
 import readline from 'readline';
-import ffmpeg from 'fluent-ffmpeg';
-import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-
-/* =========================
-   GLOBAL FFmpeg SETUP
-========================= */
-ffmpeg.setFfmpegPath(ffmpegInstaller.path);
-
-console.log('✅ FFmpeg:', ffmpegInstaller.path);
-
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
+const rl = readline.createInterface(process.stdin, process.stdout);
 
 let worker = null;
+let running = false;
 let restartTimer = null;
 
 function start(file) {
-  const full = join(__dirname, file);
+	if (running) return;
+	running = true;
+	const full = join(__dirname, file);
 
-  if (worker) worker.terminate();
+	if (worker) worker.terminate();
+	worker = new Worker(full);
+	if (restartTimer) {
+		clearTimeout(restartTimer);
+		restartTimer = null;
+	}
 
-  worker = new Worker(full);
+	worker.on('message', (msg) => {
+		console.log('[MESSAGE]', msg);
 
-  // clean old timer
-  if (restartTimer) {
-    clearTimeout(restartTimer);
-    restartTimer = null;
-  }
+		if (msg === 'restart' || msg === 'reset') {
+			restart();
+		}
+	});
 
-  worker.on('message', (msg) => {
-    console.log('[MESSAGE]', msg);
+	worker.on('exit', (code) => {
+		console.log('❗ Worker exited with code', code);
+		running = false;
+		if (code !== 0) {
+			restartTimer = setTimeout(
+				() => {
+					console.log('⏳ Auto restart...');
+					restart();
+				},
+				30 * 60 * 1000
+			);
+		}
+		watchFile(full, () => {
+			unwatchFile(full);
+			console.log('♻️ File updated → Restarting...');
+			start(file);
+		});
+	});
 
-    if (msg === 'restart' || msg === 'reset') {
-      restart();
-    }
-  });
+	if (!rl.listenerCount('line')) {
+		rl.on('line', (line) => {
+			const cmd = line.trim().toLowerCase();
+			if (!cmd) return;
 
-  worker.on('exit', (code) => {
-    console.log('❗ Worker exited with code', code);
+			if (cmd === 'exit') {
+				console.log('⛔ Exiting...');
+				worker?.terminate();
+				process.exit(0);
+			}
+			if (cmd === 'restart' || cmd === 'reset') {
+				console.log('🍃Restart...');
+				restart();
+			}
 
-    // auto restart (lebih cepat & aman)
-    restartTimer = setTimeout(() => {
-      console.log('♻️ Auto restart worker...');
-      start(file);
-    }, 5000);
-  });
-
-  // CLI listener hanya 1x
-  if (!rl.listenerCount('line')) {
-    rl.on('line', (line) => {
-      const cmd = line.trim().toLowerCase();
-
-      if (!cmd) return;
-
-      if (cmd === 'exit') {
-        console.log('⛔ Exiting...');
-        worker?.terminate();
-        process.exit(0);
-      }
-
-      if (cmd === 'restart' || cmd === 'reset') {
-        console.log('🍃 Restart...');
-        restart();
-      }
-
-      worker?.postMessage(cmd);
-    });
-  }
-
-  // FILE WATCH FIX (jangan spam watcher)
-  watchFile(full, () => {
-    console.log('♻️ File changed → restart');
-    unwatchFile(full);
-    restart();
-  });
+			worker?.postMessage(cmd);
+		});
+	}
 }
 
 function restart() {
-  if (worker) {
-    try {
-      worker.terminate();
-    } catch {}
-  }
+	if (worker) {
+		try {
+			worker.terminate();
+		} catch {}
+	}
+	running = false;
 
-  worker = null;
-
-  if (restartTimer) {
-    clearTimeout(restartTimer);
-    restartTimer = null;
-  }
-
-  start('main.js');
+	start('main.js');
 }
+
+start('main.js');
