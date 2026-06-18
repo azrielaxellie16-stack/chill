@@ -1,3 +1,5 @@
+console.log('PAIR PLUGIN MASUK')
+
 import ngentot from "baileys";
 import Pino from "pino";
 import NodeCache from "node-cache";
@@ -9,11 +11,10 @@ const {
   delay
 } = ngentot;
 
-let handler = async (m, { conn, text, reaction, Access, kntol }) => {
-  if (!Access) return;
+let handler = async (m, { conn, text }) => {
   if (!text) return kntol("where jid? Ex 628");
 
-  await reaction(m.chat, "🍃");
+  await m.react('✨')
 
   let [nomor, jumlah] = text.split(" ");
   let ajng = "start/session/spams/" + m.sender.split("@")[0];
