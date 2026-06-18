@@ -6,7 +6,6 @@ import fs from 'fs'
 
 ffmpeg.setFfmpegPath(ffmpegPath)
 
-// 🔥 CONVERT LANGSUNG KE WEBP (LEBIH STABIL)
 const toWebp = (buffer, isAnimated) => {
   return new Promise((resolve, reject) => {
     const input = join(tmpdir(), `in_${Date.now()}.mp4`)
@@ -14,38 +13,38 @@ const toWebp = (buffer, isAnimated) => {
 
     fs.writeFileSync(input, buffer)
 
-    let command = ffmpeg(input)
+    let cmd = ffmpeg(input)
 
     if (isAnimated) {
-      command.outputOptions([
-        // 🔥 FULL OPTIMIZE
+      cmd.outputOptions([
         '-vcodec libwebp',
+
+        // 🔥 NO GEPENG + AUTO FIT + TRANSPARENT
         '-vf scale=512:512:force_original_aspect_ratio=decrease,fps=12,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=white@0.0',
+
         '-loop 0',
-        '-ss 0',
         '-t 5',
         '-preset default',
         '-an',
         '-vsync 0'
       ])
     } else {
-      command.outputOptions([
+      cmd.outputOptions([
         '-vcodec libwebp',
-        '-vf scale=512:512:force_original_aspect_ratio=decrease',
-        '-lossless 0',
-        '-qscale 75'
+
+        // 🔥 IMAGE JUGA NO GEPENG
+        '-vf scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2',
+
+        '-qscale 70'
       ])
     }
 
-    command
-      .save(output)
+    cmd.save(output)
       .on('end', () => {
-        let result = fs.readFileSync(output)
-
+        let res = fs.readFileSync(output)
         fs.unlinkSync(input)
         fs.unlinkSync(output)
-
-        resolve(result)
+        resolve(res)
       })
       .on('error', (err) => {
         try { fs.unlinkSync(input) } catch {}
@@ -66,19 +65,13 @@ let handler = async (m, { conn }) => {
 
   try {
     let media = await quoted.download()
-
-    // 🔥 LANGSUNG CONVERT KE WEBP (BYPASS FORMATTER)
     let webp = await toWebp(media, isAnimated)
 
-    await conn.sendMessage(
-      m.chat,
-      { sticker: webp },
-      { quoted: m }
-    )
+    await conn.sendMessage(m.chat, { sticker: webp }, { quoted: m })
 
   } catch (e) {
     console.error(e)
-    m.reply('Gagal convert sticker!')
+    m.reply('Gagal buat sticker!')
   }
 }
 
