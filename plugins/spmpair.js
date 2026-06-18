@@ -1,15 +1,15 @@
 console.log('PAIR PLUGIN MASUK')
 
-import ngentot from "baileys";
-import Pino from "pino";
-import NodeCache from "node-cache";
+import * as baileys from 'baileys'
+import Pino from 'pino'
+import NodeCache from 'node-cache'
 
 const {
   makeWASocket,
   useMultiFileAuthState,
   makeCacheableSignalKeyStore,
   delay
-} = ngentot;
+} = baileys
 
 let handler = async (m, { conn, text }) => {
   if (!text) throw 'Masukkan nomornya'
